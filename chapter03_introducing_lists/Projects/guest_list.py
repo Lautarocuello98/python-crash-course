@@ -29,3 +29,5 @@ while len(guests) > 2:
 for name in reversed(guests):
     print(f"{name}, you're still invited!")
 
+print(f"only {len(guests)} were invite")
+
