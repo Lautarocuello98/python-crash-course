@@ -20,7 +20,6 @@ class Restaurant:
             raise ValueError("Cannot increment by negative number.")
         self.customer_count += number
 
-    # 🔹 Método común para mostrar info
     def show_details(self):
         self.describe_restaurant()
         print(f"Customers served: {self.customer_count}")
@@ -37,7 +36,6 @@ class IceCreamStand(Restaurant):
         for flavor in self.flavors:
             print(f"- {flavor}")
 
-    # 🔹 Sobrescribimos comportamiento
     def show_details(self):
         self.describe_restaurant()
         print(f"Customers served: {self.customer_count}")
