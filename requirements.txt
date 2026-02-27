@@ -1,0 +1,6 @@
+pygame>=2.5
+matplotlib>=3.8
+plotly>=5.18
+django>=4.2
+requests>=2.31
+pytest>=7.4
