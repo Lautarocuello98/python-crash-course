@@ -1,0 +1,51 @@
+
+class Restaurant:
+    def __init__(self, name, cuisine):
+        self.name = name.title()
+        self.cuisine = cuisine
+        self.customer_count = 0
+
+    def set_number_served(self, customers):
+        if customers < 0:
+            raise ValueError("Customer count cannot be negative.")
+        self.customer_count = customers
+
+    def describe(self):
+        print(f"\n{self.name} - {self.cuisine}")
+        print(f"Customers served: {self.customer_count}")
+
+class IceCreamStand(Restaurant):
+    def __init__(self, name, flavors):
+        super().__init__(name, "Ice Cream")
+        self.flavors = flavors
+
+    def describe(self):
+        super().describe()
+        print("Flavors:", ", ".join(self.flavors))
+
+# ---- User Input ----
+
+name = input("Restaurant name: ").strip()
+type_place = input("Is it an ice cream stand? (yes/no): ").strip().lower()
+
+if type_place == "yes":
+    flavors_input = input("Enter flavors separated by commas: ")
+    flavors = [f.strip().title() for f in flavors_input.split(",")]
+    place = IceCreamStand(name, flavors)
+else:
+    cuisine = input("Cuisine type: ").strip()
+    place = Restaurant(name, cuisine)
+
+while True:
+    try:
+        served = int(input("Customers served: "))
+        break
+    except ValueError:
+        print("Please enter a valid number.")
+
+place.set_number_served(served)
+
+place.describe()
+
+
+
