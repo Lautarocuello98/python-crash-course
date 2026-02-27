@@ -2,7 +2,7 @@
 class Restaurant:
     def __init__(self, name, cuisine):
         self.name = name.title()
-        self.cuisine = cuisine
+        self.cuisine = cuisine.title()
         self.customer_count = 0
 
     def set_number_served(self, customers):
