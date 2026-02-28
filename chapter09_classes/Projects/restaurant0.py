@@ -1,3 +1,4 @@
+# Lautarocuello98
 
 class Restaurant:
     def __init__(self, name, cuisine):
@@ -24,7 +25,6 @@ class IceCreamStand(Restaurant):
         print("Flavors:", ", ".join(self.flavors))
 
 # ---- User Input ----
-
 name = input("Restaurant name: ").strip()
 type_place = input("Is it an ice cream stand? (yes/no): ").strip().lower()
 
