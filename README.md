@@ -39,9 +39,20 @@ Chapter 11: Testing Your Code
 
 ### Part II — Projects
 
-Chapter 12–14: Alien Invasion (Pygame)  
-Chapter 15–17: Data Visualization  
-Chapter 18–20: Web Application with Django  
+Alien Invasion (Pygame):
+Chapter 12: A Ship That Fires Bullets
+Chapter 13: Aliens!
+Chapter 14: Scoring
+
+Data Visualization:
+Chapter 15: Generating Data
+Chapter 16: Downloading Data
+Chapter 17: Working with APIs
+
+Web Applications:
+Chapter 18: Getting Started with Django
+Chapter 19: User Accounts
+Chapter 20: Styling and Deploying an App
 
 Each chapter folder contains exercises, projects and practice implementations structured according to the book progression.
 
