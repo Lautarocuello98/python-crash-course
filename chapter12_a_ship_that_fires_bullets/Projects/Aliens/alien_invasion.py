@@ -1,9 +1,8 @@
-# alien_invasion.py
 import sys
 import pygame
 
 from settings import Settings
-from character import Character
+from ship import Ship
 
 
 class AlienInvasion:
@@ -20,7 +19,7 @@ class AlienInvasion:
         )
         pygame.display.set_caption("Alien Invasion")
 
-        self.character = Character(self)
+        self.ship = Ship(self)
 
     def run_game(self):
         """Start the main loop for the game."""
@@ -39,7 +38,7 @@ class AlienInvasion:
     def _update_screen(self):
         """Redraw the screen during each pass through the loop."""
         self.screen.fill(self.settings.bg_color)
-        self.character.blitme()
+        self.ship.blitme()
         pygame.display.flip()
 
 
