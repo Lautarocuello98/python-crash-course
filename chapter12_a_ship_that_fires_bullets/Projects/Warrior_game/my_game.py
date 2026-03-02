@@ -1,9 +1,10 @@
+# alien_invasion.py
 import sys
-
 import pygame
 
 from settings import Settings
-from ship import Ship
+from character import Character
+
 
 class AlienInvasion:
     """Overall class to manage game assets and behavior."""
@@ -19,7 +20,7 @@ class AlienInvasion:
         )
         pygame.display.set_caption("Alien Invasion")
 
-        self.ship = Ship(self)
+        self.character = Character(self)
 
     def run_game(self):
         """Start the main loop for the game."""
@@ -28,22 +29,20 @@ class AlienInvasion:
             self._update_screen()
             self.clock.tick(60)
 
-    def _update_screen(self):
-        # Redraw the screen during each pass through the loop.
-        self.screen.fill(self.settings.bg_color)
-        self.ship.blitme()
-
-        # Make the most recently drawn screen visible.
-        pygame.display.flip()
-                 
-    
     def _check_events(self):
         """Respond to keypresses and mouse events."""
         for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    sys.exit()
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-if __name__ == '__main__':
-    # Make a game instance, and run the game. 
+    def _update_screen(self):
+        """Redraw the screen during each pass through the loop."""
+        self.screen.fill(self.settings.bg_color)
+        self.character.blitme()
+        pygame.display.flip()
+
+
+if __name__ == "__main__":
     ai = AlienInvasion()
     ai.run_game()
