@@ -27,6 +27,7 @@ class AlienInvasion:
         self.background = pygame.image.load("images/background.jpg").convert()
         self.background = pygame.transform.scale(self.background, self.screen.get_size())
 
+        # Sync settings resolution with fullscreen resolution
         self.settings.screen_width = self.screen_rect.width
         self.settings.screen_height = self.screen_rect.height
 
@@ -47,7 +48,13 @@ class AlienInvasion:
         self.platform_rect = self.platform_image.get_rect()
 
         self.platform_rect.left = 20
-        self.platform_rect.bottom = self.screen_rect.bottom - 650
+        self.platform_rect.centery = self.screen_rect.centery
+
+        # Platform vertical movement (up/down)
+        self.platform_speed = 2.0
+        self.platform_direction = 1
+        self.platform_min_y = 120
+        self.platform_max_y = self.screen_rect.height - 120
         # ------------------
 
         # ---- TARGET ANIMATION (2 frames) ----
@@ -55,7 +62,6 @@ class AlienInvasion:
             pygame.image.load("images/normal.bmp").convert_alpha(),
             pygame.image.load("images/shout.bmp").convert_alpha(),
         ]
-
         self.target_frames = [
             pygame.transform.smoothscale(img, (90, 90)) for img in self.target_frames
         ]
@@ -90,17 +96,31 @@ class AlienInvasion:
         # Enemy spawn timer
         self.spawn_timer = 0
 
-        # Play button for the menu
-        self.play_button = Button(self, "Play")
+        # Menu buttons (Difficulty levels)
+        self.easy_button = Button(self, "Easy")
+        self.medium_button = Button(self, "Medium")
+        self.hard_button = Button(self, "Hard")
+
+        # Position buttons
+        cx = self.screen_rect.centerx
+        cy = self.screen_rect.centery
+        self.easy_button.rect.center = (cx, cy - 70)
+        self.medium_button.rect.center = (cx, cy)
+        self.hard_button.rect.center = (cx, cy + 70)
 
         pygame.mouse.set_visible(True)
 
     # ----------------- Game Control -----------------
 
-    def _start_game(self):
-        """Start a new game. Can be triggered by the Play button or by pressing P."""
+    def _start_game(self, difficulty: str):
+        """Start a new game with selected difficulty."""
         self.stats.reset_stats()
         self.stats.game_active = True
+
+        # Reset dynamic settings and apply difficulty (you must have apply_difficulty in Settings)
+        self.settings.initialize_dynamic_settings()
+        if hasattr(self.settings, "apply_difficulty"):
+            self.settings.apply_difficulty(difficulty)
 
         # Clear existing sprites
         self.bullets.empty()
@@ -111,12 +131,21 @@ class AlienInvasion:
         self.spawn_timer = 0
         self.ship.center_ship()
 
-        # Hide mouse cursor during gameplay
+        # Reset platform position (optional: start middle)
+        self.platform_rect.centery = self.screen_rect.centery
+        self.platform_direction = 1
+
+        # Keep target attached
+        self.target_rect.midbottom = (
+            self.platform_rect.centerx,
+            self.platform_rect.top + self.target_offset_y,
+        )
+
         pygame.mouse.set_visible(False)
 
     def _reset_game(self):
         """Restart the game after Game Over."""
-        self._start_game()
+        self._start_game("Medium")
 
     # ----------------- Helpers -----------------
 
@@ -125,8 +154,20 @@ class AlienInvasion:
         for _ in range(15):
             self.falling_stars.add(FallingStar(self))
 
+    def _update_platform(self):
+        """Move the platform up and down. The target stays on it."""
+        self.platform_rect.y += self.platform_direction * self.platform_speed
+
+        if self.platform_rect.top <= self.platform_min_y:
+            self.platform_rect.top = self.platform_min_y
+            self.platform_direction *= -1
+
+        if self.platform_rect.bottom >= self.platform_max_y:
+            self.platform_rect.bottom = self.platform_max_y
+            self.platform_direction *= -1
+
     def _update_target_animation(self):
-        """Animate the target sprite."""
+        """Animate the target sprite (no movement)."""
         self.target_anim_timer += 1
 
         if self.target_anim_timer >= self.target_anim_rate:
@@ -155,6 +196,7 @@ class AlienInvasion:
                 self._update_enemies()
 
                 self.falling_stars.update()
+                self._update_platform()
                 self._update_target_animation()
 
             self._update_screen()
@@ -188,6 +230,7 @@ class AlienInvasion:
         y = randint(0, self.settings.screen_height - 80)
         x = self.settings.screen_width + 10
 
+        # 10% chance to spawn a Star (bomb), otherwise Alien
         if randint(1, 10) == 1:
             enemy = Star(self)
             enemy.rect.x = x
@@ -204,26 +247,31 @@ class AlienInvasion:
         self.spawn_timer = self.settings.enemy_spawn_rate
 
     def _update_enemies(self):
-        """Update enemy movement and collisions."""
+        """Update enemy movement and handle collisions."""
         self.aliens.update()
         self.stars.update()
 
+        # If ANY enemy reaches the left side -> lose a life
         for alien in self.aliens.copy():
-            if alien.rect.left <= 0:
+            if alien.rect.right < 0:
                 self.ship_hit()
                 return
 
-        for mine in self.stars.copy():
-            if mine.rect.left <= 0:
+        for bomb in self.stars.copy():
+            if bomb.rect.right < 0:
                 self.ship_hit()
                 return
 
-        if self.ship:
-            pygame.sprite.spritecollide(self.ship, self.aliens, True)
+        if not self.ship:
+            return
 
-            if pygame.sprite.spritecollideany(self.ship, self.stars):
-                self.ship_hit()
+        # Touching an alien -> alien dies, player survives
+        pygame.sprite.spritecollide(self.ship, self.aliens, True)
 
+        # Touching a bomb -> player loses a life
+        if pygame.sprite.spritecollideany(self.ship, self.stars):
+            self.ship_hit()
+            return
     # ----------------- Event Handling -----------------
 
     def _check_events(self):
@@ -242,23 +290,32 @@ class AlienInvasion:
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
-                self._check_play_button(mouse_pos)
+                self._check_menu_click(mouse_pos)
 
-    def _check_play_button(self, mouse_pos):
-        """Start the game when the Play button is clicked."""
-        button_clicked = self.play_button.rect.collidepoint(mouse_pos)
+    def _check_menu_click(self, mouse_pos):
+        """Start the game when a difficulty button is clicked."""
+        if self.stats.game_active:
+            return
 
-        if button_clicked and not self.stats.game_active:
-            self._start_game()
+        if self.easy_button.rect.collidepoint(mouse_pos):
+            self._start_game("Easy")
+        elif self.medium_button.rect.collidepoint(mouse_pos):
+            self._start_game("Medium")
+        elif self.hard_button.rect.collidepoint(mouse_pos):
+            self._start_game("Hard")
 
     def _check_keydown_events(self, event):
         """Respond to key presses."""
+        if event.key in (pygame.K_q, pygame.K_ESCAPE):
+            pygame.quit()
+            sys.exit()
 
-        # Start the game when the player presses P
+        # Start on Medium with P
         if event.key == pygame.K_p and not self.stats.game_active:
-            self._start_game()
+            self._start_game("Medium")
+            return
 
-        # Restart the game after Game Over
+        # Restart after Game Over
         if not self.stats.game_active and event.key == pygame.K_r:
             self._reset_game()
             return
@@ -271,15 +328,11 @@ class AlienInvasion:
             self.ship.moving_right = True
         elif event.key == pygame.K_LEFT:
             self.ship.moving_left = True
-        elif event.key in (pygame.K_q, pygame.K_ESCAPE):
-            pygame.quit()
-            sys.exit()
         elif event.key == pygame.K_SPACE and self.stats.game_active:
             self._fire_bullet()
 
     def _check_keyup_events(self, event):
         """Respond to key releases."""
-
         if event.key == pygame.K_UP:
             self.ship.moving_up = False
         elif event.key == pygame.K_DOWN:
@@ -321,10 +374,14 @@ class AlienInvasion:
         if self.ship:
             self.ship.blitme()
 
-        if not self.stats.game_active and self.stats.ships_left == self.settings.ship_limit:
-            self.play_button.draw_button()
+        # Menu
+        if (not self.stats.game_active) and (self.stats.ships_left == self.settings.ship_limit):
+            self.easy_button.draw_button()
+            self.medium_button.draw_button()
+            self.hard_button.draw_button()
 
-        if not self.stats.game_active and self.stats.ships_left == 0:
+        # Game over
+        if (not self.stats.game_active) and (self.stats.ships_left == 0):
             self._draw_game_over()
 
         pygame.display.flip()
@@ -333,7 +390,7 @@ class AlienInvasion:
 
     def _fire_bullet(self):
         """Create a new bullet."""
-        if len(self.bullets) < self.settings.bullet_allowed:
+        if len(self.bullets) < self.settings.bullets_allowed:
             self.bullets.add(Bullet(self))
 
     # ----------------- Ship Hit -----------------
@@ -341,7 +398,6 @@ class AlienInvasion:
     def ship_hit(self):
         """Respond to the ship being hit."""
         if self.stats.ships_left > 1:
-
             self.stats.ships_left -= 1
 
             self.bullets.empty()
@@ -352,7 +408,6 @@ class AlienInvasion:
             self.spawn_timer = 60
 
             sleep(0.5)
-
         else:
             self.stats.ships_left = 0
             self.stats.game_active = False

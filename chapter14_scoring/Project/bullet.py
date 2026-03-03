@@ -1,31 +1,30 @@
 import pygame
 from pygame.sprite import Sprite
 
+
 class Bullet(Sprite):
-    """A class to manage bullets fired from the ship"""
+    """A class to manage bullets fired from the ship (horizontal)."""
 
     def __init__(self, ai_game):
-        """Create a bullet object at the ship's current position."""
         super().__init__()
         self.screen = ai_game.screen
         self.settings = ai_game.settings
         self.color = self.settings.bullet_color
 
-        self.rect = pygame.Rect(
-            0, 0,
-            self.settings.bullet_width,
-            self.settings.bullet_height
-        )
+        # Create a bullet rect at (0, 0) then set correct position.
+        self.rect = pygame.Rect(0, 0, self.settings.bullet_height, self.settings.bullet_width)
 
-        self.rect.midright = ai_game.ship.rect.midright
+        # Spawn bullet from the ship's right side
+        self.rect.midleft = ai_game.ship.rect.midright
 
+        # Store bullet position as float (x axis)
         self.x = float(self.rect.x)
 
     def update(self):
-        """Move the bullet to the right"""
+        """Move the bullet to the right."""
         self.x += self.settings.bullet_speed
-        self.rect.x = self.x
+        self.rect.x = int(self.x)
 
     def draw_bullet(self):
-        """Draw the bullet to the screen"""
+        """Draw the bullet to the screen."""
         pygame.draw.rect(self.screen, self.color, self.rect)
