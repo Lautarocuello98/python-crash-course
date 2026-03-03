@@ -21,16 +21,44 @@ class AlienInvasion:
         self.settings = Settings()
 
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.screen_rect = self.screen.get_rect()
 
         self.background = pygame.image.load("images/background.jpg").convert()
         self.background = pygame.transform.scale(self.background, self.screen.get_size())
 
-        self.settings.screen_width = self.screen.get_rect().width
-        self.settings.screen_height = self.screen.get_rect().height
+        self.settings.screen_width = self.screen_rect.width
+        self.settings.screen_height = self.screen_rect.height
 
         pygame.display.set_caption("Alien Invasion")
 
         self.stats = GameStats(self)
+
+        # ---- PLATFORM ----
+        self.platform_image = pygame.image.load("images/base.bmp").convert_alpha()
+        self.platform_image = pygame.transform.scale(self.platform_image, (90, 90))
+        self.platform_rect = self.platform_image.get_rect()
+
+        self.platform_rect.left = 20
+        self.platform_rect.bottom = self.screen_rect.bottom - 650
+        # ------------------
+
+        # ---- TARGET ANIMATION (2 frames) ----
+        self.target_frames = [
+            pygame.image.load("images/normal.bmp").convert_alpha(),
+            pygame.image.load("images/shout.bmp").convert_alpha(),
+        ]
+        self.target_frames = [pygame.transform.smoothscale(img, (90, 90)) for img in self.target_frames]
+
+        self.target_index = 0
+        self.target_image = self.target_frames[self.target_index]
+        self.target_rect = self.target_image.get_rect()
+
+        # Arriba de la plataforma
+        self.target_rect.midbottom = (self.platform_rect.centerx, self.platform_rect.top + 35)
+
+        self.target_anim_timer = 0
+        self.target_anim_rate = 15   # cambia cada 12 frames (~5 veces/seg)
+        # ------------------------------------
 
         # Background falling stars
         self.falling_stars = pygame.sprite.Group()
@@ -51,6 +79,17 @@ class AlienInvasion:
         for _ in range(15):
             self.falling_stars.add(FallingStar(self))
 
+    def _update_target_animation(self):
+        # alternar frames
+        self.target_anim_timer += 1
+        if self.target_anim_timer >= self.target_anim_rate:
+            self.target_anim_timer = 0
+            self.target_index = 1 - self.target_index
+            self.target_image = self.target_frames[self.target_index]
+
+        # mantenerla pegada arriba de la plataforma
+        self.target_rect.midbottom = (self.platform_rect.centerx, self.platform_rect.top + 35)
+
     def run_game(self):
         while True:
             self._check_events()
@@ -64,6 +103,7 @@ class AlienInvasion:
                 self._update_enemies()
 
                 self.falling_stars.update()
+                self._update_target_animation()
 
             self._update_screen()
             self.clock.tick(60)
@@ -73,7 +113,6 @@ class AlienInvasion:
     def _update_bullets(self):
         self.bullets.update()
 
-        # Remove bullets that left the screen (right side)
         for bullet in self.bullets.copy():
             if bullet.rect.left >= self.settings.screen_width:
                 self.bullets.remove(bullet)
@@ -94,7 +133,6 @@ class AlienInvasion:
         y = randint(0, self.settings.screen_height - 80)
         x = self.settings.screen_width + 10
 
-        # 1 in 10 -> mine
         if randint(1, 10) == 1:
             enemy = Star(self)
             enemy.rect.x = x
@@ -114,7 +152,6 @@ class AlienInvasion:
         self.aliens.update()
         self.stars.update()
 
-        # Remove enemies that left the screen (left side)
         for a in self.aliens.copy():
             if a.rect.right < 0:
                 self.aliens.remove(a)
@@ -123,11 +160,9 @@ class AlienInvasion:
             if m.rect.right < 0:
                 self.stars.remove(m)
 
-        # 🚀 Ship touching eye -> eye disappears
         if self.ship:
             pygame.sprite.spritecollide(self.ship, self.aliens, True)
 
-            # 💣 Ship touching mine -> ship hit (lose life)
             if pygame.sprite.spritecollideany(self.ship, self.stars):
                 self.ship_hit()
 
@@ -177,6 +212,10 @@ class AlienInvasion:
 
         self.falling_stars.draw(self.screen)
 
+        # Platform + target arriba
+        self.screen.blit(self.platform_image, self.platform_rect)
+        self.screen.blit(self.target_image, self.target_rect)
+
         self.aliens.draw(self.screen)
         self.stars.draw(self.screen)
 
@@ -197,7 +236,6 @@ class AlienInvasion:
     # ----------------- Ship hit -----------------
 
     def ship_hit(self):
-        """Respond to the ship being hit by a mine."""
         self.stats.ships_left -= 1
 
         self.bullets.empty()
@@ -205,7 +243,7 @@ class AlienInvasion:
         self.stars.empty()
 
         self.ship.center_ship()
-        self.spawn_timer = 60  # pausa antes de volver a spawnear
+        self.spawn_timer = 60
 
         sleep(0.5)
 
