@@ -1,9 +1,11 @@
 import sys
 import pygame
 from random import randint
+from time import sleep
 
 from star import Star
 from settings import Settings
+from game_stats import GameStats
 from ship import Ship
 from bullet import Bullet
 from alien import Alien
@@ -28,6 +30,8 @@ class AlienInvasion:
 
         pygame.display.set_caption("Alien Invasion")
 
+        self.stats = GameStats(self)
+
         # Background falling stars
         self.falling_stars = pygame.sprite.Group()
         self._create_falling_stars()
@@ -51,19 +55,18 @@ class AlienInvasion:
         while True:
             self._check_events()
 
-            self.ship.update()
-            self._update_bullets()
+            if self.stats.game_active:
+                if self.ship:
+                    self.ship.update()
 
-            self._spawn_enemies()
-            self._update_enemies()
+                self._update_bullets()
+                self._spawn_enemies()
+                self._update_enemies()
 
-            self.falling_stars.update()
+                self.falling_stars.update()
+
             self._update_screen()
-
             self.clock.tick(60)
-
-            if self.ship:
-                self.ship.update()
 
     # ----------------- Bullets -----------------
 
@@ -111,6 +114,7 @@ class AlienInvasion:
         self.aliens.update()
         self.stars.update()
 
+        # Remove enemies that left the screen (left side)
         for a in self.aliens.copy():
             if a.rect.right < 0:
                 self.aliens.remove(a)
@@ -119,10 +123,13 @@ class AlienInvasion:
             if m.rect.right < 0:
                 self.stars.remove(m)
 
-        pygame.sprite.spritecollide(self.ship, self.aliens, True)
+        # 🚀 Ship touching eye -> eye disappears
+        if self.ship:
+            pygame.sprite.spritecollide(self.ship, self.aliens, True)
 
-        if pygame.sprite.spritecollideany(self.ship, self.stars):
-            self.ship = None  # elimina la nave
+            # 💣 Ship touching mine -> ship hit (lose life)
+            if pygame.sprite.spritecollideany(self.ship, self.stars):
+                self.ship_hit()
 
     # ----------------- Events -----------------
 
@@ -150,7 +157,7 @@ class AlienInvasion:
         elif event.key in (pygame.K_q, pygame.K_ESCAPE):
             pygame.quit()
             sys.exit()
-        elif event.key == pygame.K_SPACE:
+        elif event.key == pygame.K_SPACE and self.stats.game_active:
             self._fire_bullet()
 
     def _check_keyup_events(self, event):
@@ -186,6 +193,24 @@ class AlienInvasion:
     def _fire_bullet(self):
         if len(self.bullets) < self.settings.bullet_allowed:
             self.bullets.add(Bullet(self))
+
+    # ----------------- Ship hit -----------------
+
+    def ship_hit(self):
+        """Respond to the ship being hit by a mine."""
+        self.stats.ships_left -= 1
+
+        self.bullets.empty()
+        self.aliens.empty()
+        self.stars.empty()
+
+        self.ship.center_ship()
+        self.spawn_timer = 60  # pausa antes de volver a spawnear
+
+        sleep(0.5)
+
+        if self.stats.ships_left <= 0:
+            self.stats.game_active = False
 
 
 if __name__ == "__main__":
