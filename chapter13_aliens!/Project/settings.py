@@ -11,14 +11,16 @@ class Settings:
         # Ship settings
         self.ship_speed = 5
 
-        # Bullet settings
-        self.bullet_speed = 3
-        self.bullet_width = 3
-        self.bullet_height = 15
+        # Bullet settings (Sideways)
+        self.bullet_speed = 6.0 
+        self.bullet_width = 15    
+        self.bullet_height = 3
         self.bullet_color = (255, 30, 30)
         self.bullet_allowed = 10
 
-        # Alien + mine (fleet) settings
-        self.alien_speed = 1.0
+        # Enemy settings (Sideways)
+        self.alien_speed = 2.0   
+        self.enemy_spawn_rate = 30  
+
         self.fleet_drop_speed = 10
-        self.fleet_direction = 1  # 1 = right, -1 = left
+        self.fleet_direction = 1

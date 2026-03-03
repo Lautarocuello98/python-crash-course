@@ -14,15 +14,9 @@ class Star(Sprite):
 
         self.x = float(self.rect.x)
 
-        self.offset_x = randint(-10, 10)
         self.offset_y = randint(-10, 10)
 
-    def check_edges(self):
-        """Return True if mine is at edge of screen."""
-        screen_rect = self.screen.get_rect()
-        return self.rect.right >= screen_rect.right or self.rect.left <= 0
-
     def update(self):
-        """Move the mine right/left with the fleet (same as Alien)."""
-        self.x += (self.settings.alien_speed * self.settings.fleet_direction)
+        """Move mine left toward the ship."""
+        self.x -= self.settings.alien_speed
         self.rect.x = int(self.x)
