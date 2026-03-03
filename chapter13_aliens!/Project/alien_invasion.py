@@ -1,10 +1,12 @@
 import sys
 import pygame
 
+from star import Star
 from settings import Settings
 from ship import Ship
 from bullet import Bullet
 from alien import Alien
+from random import randint
 
 class AlienInvasion:
     """Overall class to manage game assets and behavior."""
@@ -24,6 +26,7 @@ class AlienInvasion:
         self.ship = Ship(self)
         self.bullets = pygame.sprite.Group()
         self.aliens = pygame.sprite.Group()
+        self.stars = pygame.sprite.Group()
 
         self._create_fleet()
 
@@ -88,8 +91,10 @@ class AlienInvasion:
 
 
     def _update_screen(self):
-        """Redraw the screen during each pass through the loop."""
         self.screen.fill(self.settings.bg_color)
+
+        self.stars.draw(self.screen)
+
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()
         self.ship.blitme()
@@ -104,10 +109,48 @@ class AlienInvasion:
             self.bullets.add(new_bullet)
 
     def _create_fleet(self):
-        """Create the fleet of aliens."""
-        # Make an alien.
+        """Create the fleet of aliens, with a 1-in-10 chance of a mine per slot."""
         alien = Alien(self)
-        self.aliens.add(alien)
+        alien_width, alien_height = alien.rect.size
+
+        mine = Star(self)
+        mine_width, mine_height = mine.rect.size
+
+        cell_w, cell_h = alien_width, alien_height
+
+        current_x, current_y = cell_w, cell_h
+        while current_y < (self.settings.screen_height - 3 * cell_h):
+            while current_x < (self.settings.screen_width - 2 * cell_w):
+
+                # 1 en 10 -> mina
+                if randint(1, 10) == 1:
+                    self._create_mine(current_x, current_y, cell_w, cell_h)
+                else:
+                    self._create_alien(current_x, current_y)
+
+                current_x += 2 * cell_w
+
+            current_x = cell_w
+            current_y += 2 * cell_h
+
+    def _create_mine(self, x_position, y_position, cell_w, cell_h):
+        """Create a mine (star) centered in the alien cell."""
+        mine = Star(self)
+
+        # Centrar la mina dentro de la celda del alien
+        mine.rect.x = x_position + (cell_w - mine.rect.width) // 2
+        mine.rect.y = y_position + (cell_h - mine.rect.height) // 2
+
+        self.stars.add(mine)
+
+
+    def _create_alien(self, x_position, y_position):
+        """Create an alien and place it in the row"""
+        new_alien = Alien(self)
+        new_alien.x = x_position
+        new_alien.rect.x = x_position
+        new_alien.rect.y = y_position
+        self.aliens.add(new_alien)
 
 if __name__ == "__main__":
     ai = AlienInvasion()

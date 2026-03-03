@@ -11,7 +11,7 @@ class Alien(Sprite):
 
         # Load the alien image and set its rect attribute.
         original_image = pygame.image.load('images/eye.bmp')
-        self.image = pygame.transform.scale(original_image, (60, 60))
+        self.image = pygame.transform.scale(original_image, (75, 75))
         self.rect = self.image.get_rect()
 
         # Start each new alien near the top left of the screen.
