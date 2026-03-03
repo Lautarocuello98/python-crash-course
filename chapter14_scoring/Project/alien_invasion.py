@@ -6,6 +6,7 @@ from time import sleep
 from star import Star
 from settings import Settings
 from game_stats import GameStats
+from scoreboard import Scoreboard
 from ship import Ship
 from bullet import Bullet
 from alien import Alien
@@ -34,9 +35,7 @@ class AlienInvasion:
         pygame.display.set_caption("Alien Invasion")
 
         self.stats = GameStats(self)
-
-        # Start in menu state
-        self.stats.game_active = False
+        self.stats.game_active = False  # menu state
 
         # Fonts used for UI text
         self.font = pygame.font.SysFont(None, 72)
@@ -70,7 +69,6 @@ class AlienInvasion:
         self.target_image = self.target_frames[self.target_index]
         self.target_rect = self.target_image.get_rect()
 
-        # Offset so the target sits slightly above the platform
         self.target_offset_y = 35
         self.target_rect.midbottom = (
             self.platform_rect.centerx,
@@ -96,12 +94,19 @@ class AlienInvasion:
         # Enemy spawn timer
         self.spawn_timer = 0
 
+        # ---- LEVEL / WAVES ----
+        self.enemies_spawned = 0
+        self.enemies_to_spawn = 0
+        # -----------------------
+
+        # Scoreboard (improved)
+        self.sb = Scoreboard(self)
+
         # Menu buttons (Difficulty levels)
         self.easy_button = Button(self, "Easy")
         self.medium_button = Button(self, "Medium")
         self.hard_button = Button(self, "Hard")
 
-        # Position buttons
         cx = self.screen_rect.centerx
         cy = self.screen_rect.centery
         self.easy_button.rect.center = (cx, cy - 70)
@@ -110,6 +115,36 @@ class AlienInvasion:
 
         pygame.mouse.set_visible(True)
 
+    # ----------------- Level system -----------------
+
+    def _setup_level(self):
+        """Configure how many enemies will spawn this level."""
+        # Progression example:
+        # Level 1: 15 enemies
+        # Level 2: 20
+        # Level 3: 25 ...
+        base = 15
+        step = 5
+
+        self.enemies_spawned = 0
+        self.enemies_to_spawn = base + (self.stats.level - 1) * step
+
+        # Clear any leftovers (safety)
+        self.aliens.empty()
+        self.stars.empty()
+        self.bullets.empty()
+
+        # Reset spawn delay a bit so wave starts clean
+        self.spawn_timer = 30
+
+    def _advance_level(self):
+        """Go to next level: speed up and start a new wave."""
+        self.stats.level += 1
+        self.settings.increase_speed()
+
+        self.sb.prep_level()
+        self._setup_level()
+
     # ----------------- Game Control -----------------
 
     def _start_game(self, difficulty: str):
@@ -117,7 +152,7 @@ class AlienInvasion:
         self.stats.reset_stats()
         self.stats.game_active = True
 
-        # Reset dynamic settings and apply difficulty (you must have apply_difficulty in Settings)
+        # Reset settings and apply difficulty (if you implemented it)
         self.settings.initialize_dynamic_settings()
         if hasattr(self.settings, "apply_difficulty"):
             self.settings.apply_difficulty(difficulty)
@@ -131,7 +166,7 @@ class AlienInvasion:
         self.spawn_timer = 0
         self.ship.center_ship()
 
-        # Reset platform position (optional: start middle)
+        # Reset platform position
         self.platform_rect.centery = self.screen_rect.centery
         self.platform_direction = 1
 
@@ -141,10 +176,16 @@ class AlienInvasion:
             self.platform_rect.top + self.target_offset_y,
         )
 
+        # Setup wave/level 1
+        self._setup_level()
+
+        # Refresh scoreboard visuals
+        self.sb.prep_all()
+
         pygame.mouse.set_visible(False)
 
     def _reset_game(self):
-        """Restart the game after Game Over."""
+        """Restart after Game Over."""
         self._start_game("Medium")
 
     # ----------------- Helpers -----------------
@@ -169,13 +210,11 @@ class AlienInvasion:
     def _update_target_animation(self):
         """Animate the target sprite (no movement)."""
         self.target_anim_timer += 1
-
         if self.target_anim_timer >= self.target_anim_rate:
             self.target_anim_timer = 0
             self.target_index = 1 - self.target_index
             self.target_image = self.target_frames[self.target_index]
 
-        # Keep the target attached to the platform
         self.target_rect.midbottom = (
             self.platform_rect.centerx,
             self.platform_rect.top + self.target_offset_y,
@@ -184,7 +223,6 @@ class AlienInvasion:
     # ----------------- Main Loop -----------------
 
     def run_game(self):
-        """Start the main game loop."""
         while True:
             self._check_events()
 
@@ -199,13 +237,17 @@ class AlienInvasion:
                 self._update_platform()
                 self._update_target_animation()
 
+                # LEVEL COMPLETE:
+                # spawned all enemies AND none left on screen
+                if (self.enemies_spawned >= self.enemies_to_spawn) and (not self.aliens) and (not self.stars):
+                    self._advance_level()
+
             self._update_screen()
             self.clock.tick(60)
 
     # ----------------- Bullet Logic -----------------
 
     def _update_bullets(self):
-        """Update bullet positions."""
         self.bullets.update()
 
         for bullet in self.bullets.copy():
@@ -215,14 +257,25 @@ class AlienInvasion:
         self._check_bullet_collisions()
 
     def _check_bullet_collisions(self):
-        """Handle bullet collisions."""
-        pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
+        """Handle bullet collisions and update score."""
+        hits_aliens = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
+        if hits_aliens:
+            destroyed_count = sum(len(v) for v in hits_aliens.values())
+            self.stats.score += self.settings.alien_points * destroyed_count
+            self.sb.prep_score()
+            self.sb.check_high_score()
+
         pygame.sprite.groupcollide(self.bullets, self.stars, True, True)
 
     # ----------------- Enemy Logic -----------------
 
     def _spawn_enemies(self):
-        """Spawn enemies from the right side of the screen."""
+        """Spawn enemies from the right side (limited per level)."""
+
+        # Stop spawning when this level already spawned enough enemies
+        if self.enemies_spawned >= self.enemies_to_spawn:
+            return
+
         if self.spawn_timer > 0:
             self.spawn_timer -= 1
             return
@@ -244,10 +297,10 @@ class AlienInvasion:
             enemy.x = float(enemy.rect.x)
             self.aliens.add(enemy)
 
+        self.enemies_spawned += 1
         self.spawn_timer = self.settings.enemy_spawn_rate
 
     def _update_enemies(self):
-        """Update enemy movement and handle collisions."""
         self.aliens.update()
         self.stars.update()
 
@@ -262,9 +315,6 @@ class AlienInvasion:
                 self.ship_hit()
                 return
 
-        if not self.ship:
-            return
-
         # Touching an alien -> alien dies, player survives
         pygame.sprite.spritecollide(self.ship, self.aliens, True)
 
@@ -272,12 +322,11 @@ class AlienInvasion:
         if pygame.sprite.spritecollideany(self.ship, self.stars):
             self.ship_hit()
             return
+
     # ----------------- Event Handling -----------------
 
     def _check_events(self):
-        """Respond to keyboard and mouse events."""
         for event in pygame.event.get():
-
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -293,7 +342,6 @@ class AlienInvasion:
                 self._check_menu_click(mouse_pos)
 
     def _check_menu_click(self, mouse_pos):
-        """Start the game when a difficulty button is clicked."""
         if self.stats.game_active:
             return
 
@@ -305,17 +353,14 @@ class AlienInvasion:
             self._start_game("Hard")
 
     def _check_keydown_events(self, event):
-        """Respond to key presses."""
         if event.key in (pygame.K_q, pygame.K_ESCAPE):
             pygame.quit()
             sys.exit()
 
-        # Start on Medium with P
         if event.key == pygame.K_p and not self.stats.game_active:
             self._start_game("Medium")
             return
 
-        # Restart after Game Over
         if not self.stats.game_active and event.key == pygame.K_r:
             self._reset_game()
             return
@@ -332,7 +377,6 @@ class AlienInvasion:
             self._fire_bullet()
 
     def _check_keyup_events(self, event):
-        """Respond to key releases."""
         if event.key == pygame.K_UP:
             self.ship.moving_up = False
         elif event.key == pygame.K_DOWN:
@@ -345,19 +389,15 @@ class AlienInvasion:
     # ----------------- Drawing -----------------
 
     def _draw_game_over(self):
-        """Display Game Over text."""
         text = self.font.render("GAME OVER", True, (255, 255, 255))
         text_rect = text.get_rect(center=self.screen_rect.center)
         self.screen.blit(text, text_rect)
 
         text2 = self.font_small.render("Press R to restart", True, (255, 255, 255))
-        text2_rect = text2.get_rect(
-            center=(self.screen_rect.centerx, self.screen_rect.centery + 60)
-        )
+        text2_rect = text2.get_rect(center=(self.screen_rect.centerx, self.screen_rect.centery + 60))
         self.screen.blit(text2, text2_rect)
 
     def _update_screen(self):
-        """Redraw all screen elements."""
         self.screen.blit(self.background, (0, 0))
 
         self.falling_stars.draw(self.screen)
@@ -371,8 +411,10 @@ class AlienInvasion:
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()
 
-        if self.ship:
-            self.ship.blitme()
+        self.ship.blitme()
+
+        if self.stats.game_active:
+            self.sb.show()
 
         # Menu
         if (not self.stats.game_active) and (self.stats.ships_left == self.settings.ship_limit):
@@ -389,14 +431,12 @@ class AlienInvasion:
     # ----------------- Shooting -----------------
 
     def _fire_bullet(self):
-        """Create a new bullet."""
         if len(self.bullets) < self.settings.bullets_allowed:
             self.bullets.add(Bullet(self))
 
     # ----------------- Ship Hit -----------------
 
     def ship_hit(self):
-        """Respond to the ship being hit."""
         if self.stats.ships_left > 1:
             self.stats.ships_left -= 1
 
@@ -407,11 +447,18 @@ class AlienInvasion:
             self.ship.center_ship()
             self.spawn_timer = 60
 
+            self.sb.prep_lives()
             sleep(0.5)
+
+            # OPTIONAL: if you want to restart the SAME wave after losing a life,
+            # uncomment the next line:
+            # self._setup_level()
+
         else:
             self.stats.ships_left = 0
             self.stats.game_active = False
             pygame.mouse.set_visible(True)
+            self.sb.prep_lives()
 
 
 if __name__ == "__main__":
