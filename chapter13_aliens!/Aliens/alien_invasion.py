@@ -32,14 +32,17 @@ class AlienInvasion:
         self.aliens = pygame.sprite.Group()
 
         self._create_fleet()
+        self.game_active = True
 
     def run_game(self):
         """Start the main loop for the game."""
         while True:
             self._check_events()
-            self.ship.update()
-            self._update_bullets()
-            self._update_aliens()
+            if self.game_active:
+                self.ship.update()
+                self._update_bullets()
+                self._update_aliens()
+                
             self._update_screen()
             self.clock.tick(60)
 
@@ -50,6 +53,9 @@ class AlienInvasion:
         # Look for alien-ship collisions.
         if pygame.sprite.spritecollideany(self.ship, self.aliens):
             self.ship_hit()
+        
+        # Look for aliens hitting the bottom of the screen,
+        self._check_aliens_bottom()
         self._check_fleet_edges()
 
     def _update_bullets(self):
@@ -144,6 +150,14 @@ class AlienInvasion:
             if alien.check_edges():
                 self._change_fleet_direction()
                 break
+
+    def _check_aliens_bottom(self):
+        """Check if any aliens have reached the bottom of the screen"""
+        for alien in self.aliens.sprites():
+            if alien.rect.bottom >= self.settings.screen_height:
+                # Treat this the same as if the ship got hit
+                self.ship_hit()
+                break
     
     def _change_fleet_direction(self):
         """Drop the entire fleet and change the fleet's direction."""
@@ -162,15 +176,17 @@ class AlienInvasion:
 
     def ship_hit(self):
         """Respond to the ship being hit by an alien."""
-        self.stats.ships_left -= 1
+        if self.stats.ships_left > 0:
+            self.stats.ships_left -= 1
 
-        self.bullets.empty()
-        self.aliens.empty()
+            self.bullets.empty()
+            self.aliens.empty()
 
-        self._create_fleet()
-        self.ship.center_ship()
-        
-        sleep(0.5)
+            self._create_fleet()
+            self.ship.center_ship()
+            sleep(0.5)
+        else:
+            self.game_active = False
 
 
 if __name__ == '__main__':

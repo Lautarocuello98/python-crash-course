@@ -32,6 +32,10 @@ class AlienInvasion:
         pygame.display.set_caption("Alien Invasion")
 
         self.stats = GameStats(self)
+        self.stats.game_active = True  # por si tu GameStats no lo tiene
+
+        # Fuente para GAME OVER
+        self.font = pygame.font.SysFont(None, 72)
 
         # ---- PLATFORM ----
         self.platform_image = pygame.image.load("images/base.bmp").convert_alpha()
@@ -53,11 +57,12 @@ class AlienInvasion:
         self.target_image = self.target_frames[self.target_index]
         self.target_rect = self.target_image.get_rect()
 
-        # Arriba de la plataforma
-        self.target_rect.midbottom = (self.platform_rect.centerx, self.platform_rect.top + 35)
+        # Más pegada a la plataforma (ajustá este +N si querés)
+        self.target_offset_y = 35
+        self.target_rect.midbottom = (self.platform_rect.centerx, self.platform_rect.top + self.target_offset_y)
 
         self.target_anim_timer = 0
-        self.target_anim_rate = 15   # cambia cada 12 frames (~5 veces/seg)
+        self.target_anim_rate = 12
         # ------------------------------------
 
         # Background falling stars
@@ -75,20 +80,37 @@ class AlienInvasion:
         # Sideways spawn timer
         self.spawn_timer = 0
 
+    # ----------------- Helpers -----------------
+
+    def _reset_game(self):
+        """Restart the game state."""
+        self.stats.reset_stats()
+        self.stats.game_active = True
+
+        self.bullets.empty()
+        self.aliens.empty()
+        self.stars.empty()
+
+        self.spawn_timer = 0
+
+        if self.ship:
+            self.ship.center_ship()
+
     def _create_falling_stars(self):
         for _ in range(15):
             self.falling_stars.add(FallingStar(self))
 
     def _update_target_animation(self):
-        # alternar frames
         self.target_anim_timer += 1
         if self.target_anim_timer >= self.target_anim_rate:
             self.target_anim_timer = 0
             self.target_index = 1 - self.target_index
             self.target_image = self.target_frames[self.target_index]
 
-        # mantenerla pegada arriba de la plataforma
-        self.target_rect.midbottom = (self.platform_rect.centerx, self.platform_rect.top + 35)
+        # Mantenerla siempre pegada arriba de la plataforma
+        self.target_rect.midbottom = (self.platform_rect.centerx, self.platform_rect.top + self.target_offset_y)
+
+    # ----------------- Main loop -----------------
 
     def run_game(self):
         while True:
@@ -152,17 +174,22 @@ class AlienInvasion:
         self.aliens.update()
         self.stars.update()
 
-        for a in self.aliens.copy():
-            if a.rect.right < 0:
-                self.aliens.remove(a)
+        # Si llegan al lado izquierdo -> perdés vida
+        for alien in self.aliens.copy():
+            if alien.rect.left <= 0:
+                self.ship_hit()
+                return
 
-        for m in self.stars.copy():
-            if m.rect.right < 0:
-                self.stars.remove(m)
+        for mine in self.stars.copy():
+            if mine.rect.left <= 0:
+                self.ship_hit()
+                return
 
+        # Nave toca alien -> alien desaparece
         if self.ship:
             pygame.sprite.spritecollide(self.ship, self.aliens, True)
 
+            # Nave toca mina -> pierde vida
             if pygame.sprite.spritecollideany(self.ship, self.stars):
                 self.ship_hit()
 
@@ -181,6 +208,11 @@ class AlienInvasion:
                 self._check_keyup_events(event)
 
     def _check_keydown_events(self, event):
+        # Reiniciar cuando game over
+        if not self.stats.game_active and event.key == pygame.K_r:
+            self._reset_game()
+            return
+
         if event.key == pygame.K_UP:
             self.ship.moving_up = True
         elif event.key == pygame.K_DOWN:
@@ -207,6 +239,15 @@ class AlienInvasion:
 
     # ----------------- Drawing -----------------
 
+    def _draw_game_over(self):
+        text = self.font.render("GAME OVER", True, (255, 255, 255))
+        text_rect = text.get_rect(center=self.screen_rect.center)
+        self.screen.blit(text, text_rect)
+
+        text2 = pygame.font.SysFont(None, 36).render("Press R to restart", True, (255, 255, 255))
+        text2_rect = text2.get_rect(center=(self.screen_rect.centerx, self.screen_rect.centery + 60))
+        self.screen.blit(text2, text2_rect)
+
     def _update_screen(self):
         self.screen.blit(self.background, (0, 0))
 
@@ -225,6 +266,9 @@ class AlienInvasion:
         if self.ship:
             self.ship.blitme()
 
+        if not self.stats.game_active:
+            self._draw_game_over()
+
         pygame.display.flip()
 
     # ----------------- Shooting -----------------
@@ -236,18 +280,19 @@ class AlienInvasion:
     # ----------------- Ship hit -----------------
 
     def ship_hit(self):
-        self.stats.ships_left -= 1
+        if self.stats.ships_left > 1:
+            self.stats.ships_left -= 1
 
-        self.bullets.empty()
-        self.aliens.empty()
-        self.stars.empty()
+            self.bullets.empty()
+            self.aliens.empty()
+            self.stars.empty()
 
-        self.ship.center_ship()
-        self.spawn_timer = 60
+            self.ship.center_ship()
+            self.spawn_timer = 60
 
-        sleep(0.5)
-
-        if self.stats.ships_left <= 0:
+            sleep(0.5)
+        else:
+            self.stats.ships_left = 0
             self.stats.game_active = False
 
 
