@@ -8,7 +8,7 @@ class Star(Sprite):
         self.screen = ai_game.screen
         self.settings = ai_game.settings
 
-        original_image = pygame.image.load("images/mine.bmp").convert()
+        original_image = pygame.image.load("images/mine.bmp")
         self.image = pygame.transform.scale(original_image, (75, 75))
         self.rect = self.image.get_rect()
 
