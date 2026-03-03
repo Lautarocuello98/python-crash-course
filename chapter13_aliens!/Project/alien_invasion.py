@@ -7,6 +7,7 @@ from settings import Settings
 from ship import Ship
 from bullet import Bullet
 from alien import Alien
+from falling_star import FallingStar
 
 
 class AlienInvasion:
@@ -19,8 +20,15 @@ class AlienInvasion:
         self.settings = Settings()
 
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.background = pygame.image.load("images/background.jpg").convert()
+        self.background = pygame.transform.scale(
+        self.background,
+        self.screen.get_size()
+        )
         self.settings.screen_width = self.screen.get_rect().width
         self.settings.screen_height = self.screen.get_rect().height
+        self.falling_stars = pygame.sprite.Group()
+        self._create_falling_stars()
 
         pygame.display.set_caption("Alien Invasion")
 
@@ -31,6 +39,11 @@ class AlienInvasion:
 
         self._create_fleet()
 
+    def _create_falling_stars(self):
+        for _ in range(15):
+            star = FallingStar(self)
+            self.falling_stars.add(star)
+
     def run_game(self):
         """Start the main loop for the game."""
         while True:
@@ -38,8 +51,10 @@ class AlienInvasion:
             self.ship.update()
             self._update_bullets()
             self._update_fleet()
+            self.falling_stars.update()
             self._update_screen()
             self.clock.tick(60)
+            
 
     # ----------------- Updates -----------------
 
@@ -125,7 +140,9 @@ class AlienInvasion:
 
     def _update_screen(self):
         """Redraw the screen during each pass through the loop."""
-        self.screen.fill(self.settings.bg_color)
+        self.screen.blit(self.background, (0, 0))
+
+        self.falling_stars.draw(self.screen)
 
         # Mines + aliens
         self.stars.draw(self.screen)
@@ -137,6 +154,7 @@ class AlienInvasion:
         self.ship.blitme()
 
         pygame.display.flip()
+
 
     # ----------------- Shooting -----------------
 
