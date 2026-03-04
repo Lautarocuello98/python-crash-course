@@ -1,4 +1,4 @@
-# Chapter 12 — Alien Invasion
+# Chapter 12 — Alien Invasion (Pygame Game Project)
 
 This chapter introduces game development basics using **Pygame**.
 
