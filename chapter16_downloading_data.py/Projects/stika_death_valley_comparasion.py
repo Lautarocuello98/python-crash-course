@@ -26,7 +26,7 @@ for row in reader1:
 
 
 # ---- DEATH VALLEY ----
-path2 = Path(r"C:\Users\lac_\programacion\python crash course\chapter16_downloading_data.py\death_valley_2021_simple.csv")
+path2 = Path(r"C:\Users\lac_\programacion\python crash course\chapter16_downloading_data.py\death_valley_2021_full.csv")
 lines2 = path2.read_text(encoding="utf-8").splitlines()
 
 reader2 = csv.reader(lines2)
@@ -34,11 +34,11 @@ header_row2 = next(reader2)
 
 dates2, highs2 = [], []
 for row in reader2:
-    if len(row) < 5:
+    if len(row) < 8:
         continue
     try:
         current_date = datetime.strptime(row[2], "%Y-%m-%d")
-        high = int(row[4])  # <-- ESTA ES LA CLAVE (no row[7])
+        high = int(row[7])
     except ValueError:
         continue
     else:
