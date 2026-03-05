@@ -28,8 +28,8 @@ def get_highs(csv_path):
 
 
 # ---- FILE PATHS ----
-sitka_path = Path(r"C:\Users\lac_\programacion\python crash course\chapter16_downloading_data.py\weather_data\sitka_weather_2021_full.csv")
-dv_path = Path(r"C:\Users\lac_\programacion\python crash course\chapter16_downloading_data.py\weather_data\death_valley_2021_full.csv")
+sitka_path = Path(__file__).parent.parent / "weather_data" / "sitka_weather_2021_full.csv"
+dv_path = Path(__file__).parent.parent / "weather_data" / "death_valley_2021_full.csv"
 
 # ---- LOAD DATA ----
 sitka_dates, sitka_highs = get_highs(sitka_path)

@@ -4,7 +4,7 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 
-path = Path('C:/Users/lac_/programacion/python crash course/chapter16_downloading_data.py/weather_data/death_valley_2021_simple.csv')
+path = Path(__file__).parent.parent / "weather_data" / "death_valley_2021_simple.csv"
 lines = path.read_text(encoding='utf-8').splitlines()
 
 reader = csv.reader(lines)
