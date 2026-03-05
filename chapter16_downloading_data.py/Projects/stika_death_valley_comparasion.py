@@ -4,71 +4,54 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 
 
-# ---- SITKA ----
-path1 = Path(r"C:\Users\lac_\programacion\python crash course\chapter16_downloading_data.py\sitka_weather_2021_full.csv")
-lines1 = path1.read_text(encoding="utf-8").splitlines()
+def get_highs(csv_path):
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
+    reader = csv.reader(lines)
+    header = next(reader)
 
-reader1 = csv.reader(lines1)
-header_row1 = next(reader1)
+    date_index = header.index("DATE")
+    tmax_index = header.index("TMAX")
 
-dates1, highs1 = [], []
-for row in reader1:
-    if len(row) < 8:
-        continue
-    try:
-        current_date = datetime.strptime(row[2], "%Y-%m-%d")
-        high = int(row[7])
-    except ValueError:
-        continue
-    else:
-        dates1.append(current_date)
-        highs1.append(high)
+    dates, highs = [], []
 
+    for row in reader:
+        try:
+            current_date = datetime.strptime(row[date_index], "%Y-%m-%d")
+            high = int(row[tmax_index])
+        except ValueError:
+            continue
+        else:
+            dates.append(current_date)
+            highs.append(high)
 
-# ---- DEATH VALLEY ----
-path2 = Path(r"C:\Users\lac_\programacion\python crash course\chapter16_downloading_data.py\death_valley_2021_full.csv")
-lines2 = path2.read_text(encoding="utf-8").splitlines()
-
-reader2 = csv.reader(lines2)
-header_row2 = next(reader2)
-
-dates2, highs2 = [], []
-for row in reader2:
-    if len(row) < 8:
-        continue
-    try:
-        current_date = datetime.strptime(row[2], "%Y-%m-%d")
-        high = int(row[7])
-    except ValueError:
-        continue
-    else:
-        dates2.append(current_date)
-        highs2.append(high)
+    return dates, highs
 
 
-# ---- DEBUG ----
-print("Sitka len:", len(highs1), "min/max:", min(highs1), max(highs1))
+# ---- FILE PATHS ----
+sitka_path = Path(r"C:\Users\lac_\programacion\python crash course\chapter16_downloading_data.py\weather_data\sitka_weather_2021_full.csv")
+dv_path = Path(r"C:\Users\lac_\programacion\python crash course\chapter16_downloading_data.py\weather_data\death_valley_2021_full.csv")
 
-if highs2:
-    print("Death Valley len:", len(highs2), "min/max:", min(highs2), max(highs2))
-else:
-    print("Death Valley highs2 is EMPTY -> check indexes / CSV columns")
+# ---- LOAD DATA ----
+sitka_dates, sitka_highs = get_highs(sitka_path)
+dv_dates, dv_highs = get_highs(dv_path)
 
+# ---- SAME Y SCALE ----
+y_min = min(min(sitka_highs), min(dv_highs))
+y_max = max(max(sitka_highs), max(dv_highs))
 
-same = (highs1 == highs2) and (dates1 == dates2)
-print("Are datasets identical:", same)
+# ---- PLOTS ----
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
 
+ax1.plot(sitka_dates, sitka_highs, color="blue")
+ax1.set_title("Sitka - Daily Highs (2021)")
+ax1.set_ylabel("Temperature (F)")
+ax1.set_ylim(y_min, y_max)
 
-# ---- PLOT ----
-fig, ax = plt.subplots()
+ax2.plot(dv_dates, dv_highs, color="red")
+ax2.set_title("Death Valley - Daily Highs (2021)")
+ax2.set_ylabel("Temperature (F)")
+ax2.set_ylim(y_min, y_max)
 
-ax.plot(dates1, highs1, label="Sitka", linewidth=2.2, marker=".", markersize=2)
-ax.plot(dates2, highs2, label="Death Valley", linewidth=2.2, linestyle="--", marker=".", markersize=2)
-
-ax.set_title("Daily High Temperatures - 2021", fontsize=20)
-ax.set_xlabel("Date")
-ax.set_ylabel("Temperature (F)")
 fig.autofmt_xdate()
-ax.legend()
-
+plt.tight_layout()
 plt.show()
