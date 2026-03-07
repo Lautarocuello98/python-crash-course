@@ -1,0 +1,21 @@
+<h1>Blog</h1>
+
+<p>
+    <a href="{% url 'blogs:new_post' %}">Add a new post</a>
+</p>
+
+<ul>
+    {% for post in posts %}
+        <li>
+            <h2>{{ post.title }}</h2>
+            <p>{{ post.date_added|date:'M d, Y H:i' }}</p>
+            <p>{{ post.text|linebreaks }}</p>
+            <p><strong>Blog:</strong> {{ post.blog }}</p>
+            <p>
+                <a href="{% url 'blogs:edit_post' post.id %}">Edit post</a>
+            </p>
+        </li>
+    {% empty %}
+        <li>No posts have been added yet.</li>
+    {% endfor %}
+</ul>
