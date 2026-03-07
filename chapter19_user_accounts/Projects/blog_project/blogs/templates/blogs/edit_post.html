@@ -1,3 +1,7 @@
+{% extends 'blogs/base.html' %}
+
+{% block content %}
+
 <h1>Edit Post</h1>
 
 <p><strong>Current title:</strong> {{ post.title }}</p>
@@ -7,3 +11,5 @@
     {{ form.as_div }}
     <button name="submit">Save changes</button>
 </form>
+
+{% endblock content %}

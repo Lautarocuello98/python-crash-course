@@ -2,12 +2,12 @@
 
 {% block content %}
 
-<h1>Add a New Post</h1>
+<h1>Register</h1>
 
-<form action="{% url 'blogs:new_post' %}" method="post">
+<form method="post" action="{% url 'register' %}">
     {% csrf_token %}
     {{ form.as_div }}
-    <button name="submit">Add post</button>
+    <button name="submit">Register</button>
 </form>
 
 {% endblock content %}
