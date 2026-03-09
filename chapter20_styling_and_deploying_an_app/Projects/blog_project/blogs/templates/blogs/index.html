@@ -2,32 +2,51 @@
 
 {% block content %}
 
-<h1>Blog</h1>
+<h1 class="mb-4">Blog Posts</h1>
 
 {% if user.is_authenticated %}
-    <p>
-        <a href="{% url 'blogs:new_post' %}">Add a new post</a>
-    </p>
+<a class="btn btn-primary mb-3" href="{% url 'blogs:new_post' %}">
+    Add new post
+</a>
 {% endif %}
 
-<ul>
-    {% for post in posts %}
-        <li>
-            <h2>{{ post.title }}</h2>
-            <p>{{ post.date_added|date:'M d, Y H:i' }}</p>
-            <p>{{ post.text|linebreaks }}</p>
-            <p><strong>Blog:</strong> {{ post.blog }}</p>
-            <p><strong>Owner:</strong> {{ post.blog.owner }}</p>
+{% for post in posts %}
 
-            {% if user == post.blog.owner %}
-                <p>
-                    <a href="{% url 'blogs:edit_post' post.id %}">Edit post</a>
-                </p>
-            {% endif %}
-        </li>
-    {% empty %}
-        <li>No posts have been added yet.</li>
-    {% endfor %}
-</ul>
+<div class="card mb-3">
+
+    <div class="card-body">
+
+        <h4 class="card-title">
+            {{ post.title }}
+        </h4>
+
+        <h6 class="card-subtitle mb-2 text-muted">
+            {{ post.date_added|date:'M d, Y H:i' }}
+        </h6>
+
+        <p class="card-text">
+            {{ post.text|linebreaks }}
+        </p>
+
+        <p class="text-muted">
+            Blog: {{ post.blog }}
+        </p>
+
+        {% if user == post.blog.owner %}
+        <a class="btn btn-sm btn-outline-secondary"
+           href="{% url 'blogs:edit_post' post.id %}">
+           Edit
+        </a>
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% empty %}
+
+<p>No posts yet.</p>
+
+{% endfor %}
 
 {% endblock content %}

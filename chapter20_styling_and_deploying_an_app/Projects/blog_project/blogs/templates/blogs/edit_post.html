@@ -2,14 +2,31 @@
 
 {% block content %}
 
-<h1>Edit Post</h1>
+<h2>Edit post</h2>
 
-<p><strong>Current title:</strong> {{ post.title }}</p>
+<form method="post">
 
-<form action="{% url 'blogs:edit_post' post.id %}" method="post">
     {% csrf_token %}
-    {{ form.as_div }}
-    <button name="submit">Save changes</button>
+
+    <div class="mb-3">
+        {{ form.blog.label_tag }}
+        {{ form.blog }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.title.label_tag }}
+        {{ form.title }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.text.label_tag }}
+        {{ form.text }}
+    </div>
+
+    <button class="btn btn-success">
+        Save changes
+    </button>
+
 </form>
 
 {% endblock content %}

@@ -2,12 +2,31 @@
 
 {% block content %}
 
-<h1>Add a New Post</h1>
+<h2>Add a new post</h2>
 
-<form action="{% url 'blogs:new_post' %}" method="post">
+<form method="post">
+
     {% csrf_token %}
-    {{ form.as_div }}
-    <button name="submit">Add post</button>
+
+    <div class="mb-3">
+        {{ form.blog.label_tag }}
+        {{ form.blog }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.title.label_tag }}
+        {{ form.title }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.text.label_tag }}
+        {{ form.text }}
+    </div>
+
+    <button class="btn btn-primary">
+        Add post
+    </button>
+
 </form>
 
 {% endblock content %}

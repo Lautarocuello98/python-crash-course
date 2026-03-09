@@ -2,12 +2,18 @@
 
 {% block content %}
 
-<h1>Log in</h1>
+<h2>Log in</h2>
 
-<form method="post" action="{% url 'login' %}">
+<form method="post">
+s
     {% csrf_token %}
+
     {{ form.as_div }}
-    <button name="submit">Log in</button>
+
+    <button class="btn btn-primary">
+        Log in
+    </button>
+
 </form>
 
 {% endblock content %}
